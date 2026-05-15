@@ -51,3 +51,26 @@ async def test_cache_set_get_delete(monkeypatch):
     await cache_module.cache_service.delete_user_by_username(username)
     got2 = await cache_module.cache_service.get_user_by_username(username)
     assert got2 is None
+
+
+@pytest.mark.asyncio
+async def test_cache_generic_key_operations(monkeypatch):
+    try:
+        import fakeredis.aioredis as fake_aioredis
+    except Exception:
+        pytest.skip("fakeredis.aioredis not available")
+
+    fake = fake_aioredis.FakeRedis()
+    await cache_module.cache_service.connect()
+    cache_module.cache_service._client = fake
+
+    await cache_module.cache_service.set_key("test:key", "value", ex=10)
+    assert await cache_module.cache_service.get_key("test:key") in ("value", b"value")
+
+    await cache_module.cache_service.delete_key("test:key")
+    assert await cache_module.cache_service.get_key("test:key") is None
+
+    await cache_module.cache_service.set_user(2, {"username": "bob"})
+    assert await cache_module.cache_service.get_user(2) == {"username": "bob"}
+    await cache_module.cache_service.delete_user(2)
+    assert await cache_module.cache_service.get_user(2) is None
