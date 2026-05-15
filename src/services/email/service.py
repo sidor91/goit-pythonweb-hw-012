@@ -23,6 +23,7 @@ conf = ConnectionConfig(
 
 
 async def send_email(email: str, username: str, host: str):
+    """Send a confirmation email with a verification token."""
     try:
         token_verification = create_email_token({"sub": email})
         message = MessageSchema(

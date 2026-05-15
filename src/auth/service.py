@@ -15,12 +15,16 @@ from src.database.users.schemas import User as UserSchema
 
 
 class Hash:
+    """Password hashing utility wrapper around Passlib's CryptContext."""
+
     pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
     def verify_password(self, plain_password: str, hashed_password: str):
+        """Verify that a plain password matches the hashed password."""
         return self.pwd_context.verify(plain_password, hashed_password)
 
     def get_password_hash(self, password: str):
+        """Hash a plain text password for secure storage."""
         return self.pwd_context.hash(password)
 
 
@@ -31,6 +35,15 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 async def create_access_token(
     data: dict[str, Any], expires_delta: Optional[int] = None
 ):
+    """Create a signed JWT access token from provided payload data.
+
+    Args:
+        data: Payload to encode in the token. Must include at least the subject.
+        expires_delta: Optional override expiration in seconds.
+
+    Returns:
+        Encoded JWT string.
+    """
     to_encode = data.copy()
     if expires_delta:
         expire = datetime.now(UTC) + timedelta(seconds=expires_delta)
@@ -49,6 +62,14 @@ async def create_access_token(
 async def get_current_user(
     token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)
 ):
+    """Resolve the current authenticated user from an OAuth2 bearer token.
+
+    The function validates the JWT, checks Redis cache for a user record,
+    and falls back to the database if no cached data exists.
+
+    Raises:
+        HTTPException: If the token is invalid or the user cannot be found.
+    """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -95,6 +116,16 @@ async def get_current_user(
 
 
 def require_role(required_role: str):
+    """Return a FastAPI dependency that enforces a fixed user role.
+
+    Args:
+        required_role: Role name required to access the protected endpoint.
+
+    Returns:
+        A dependency callable that raises 403 if the current user lacks
+        the required role.
+    """
+
     async def role_dependency(user: UserSchema = Depends(get_current_user)):
         if user.role != required_role:
             raise HTTPException(
@@ -107,6 +138,7 @@ def require_role(required_role: str):
 
 
 def create_email_token(data: dict[str, Any]):
+    """Create an email verification token valid for seven days."""
     to_encode = data.copy()
     expire = datetime.now(UTC) + timedelta(days=7)
     to_encode.update({"iat": datetime.now(UTC), "exp": expire})

@@ -2,6 +2,7 @@ from datetime import date
 
 
 def get_next_birthday(birthday: date, today: date) -> date:
+    """Calculate the next occurrence of a birthday relative to today."""
     try:
         next_birthday = birthday.replace(year=today.year)
     except ValueError:

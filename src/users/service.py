@@ -7,10 +7,13 @@ from src.services.cache.service import cache_service
 
 
 class UserService:
+    """Application service layer for user business operations."""
+
     def __init__(self, db: AsyncSession):
         self.repository = UserRepository(db)
 
     async def create_user(self, body: UserCreate):
+        """Create a user and generate a Gravatar avatar URL if possible."""
         avatar = None
         try:
             g = Gravatar(body.email)
@@ -27,12 +30,15 @@ class UserService:
         return await self.repository.get_user_by_username(username)
 
     async def get_user_by_email(self, email: str):
+        """Retrieve a user by email address through the repository."""
         return await self.repository.get_user_by_email(email)
 
     async def confirmed_email(self, email: str):
+        """Confirm the email address of an existing user."""
         return await self.repository.confirmed_email(email)
 
     async def update_avatar_url(self, email: str, url: str):
+        """Update a user's avatar URL and invalidate cached data."""
         user = await self.repository.update_avatar_url(email, url)
         # Invalidate cached user data after avatar update
         try:
@@ -45,6 +51,7 @@ class UserService:
         return user
 
     async def update_password(self, email: str, hashed_password: str):
+        """Update a user's password hash and clear user cache entries."""
         user = await self.repository.update_password(email, hashed_password)
         # Invalidate cache so subsequent requests fetch fresh data
         try:

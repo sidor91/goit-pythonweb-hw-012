@@ -9,6 +9,7 @@ router = APIRouter(tags=["utils"])
 
 @router.get("/healthchecker")
 async def healthchecker(db: AsyncSession = Depends(get_db)):
+    """Healthcheck endpoint returning a simple database connectivity status."""
     try:
         result = await db.execute(text("SELECT 1"))
         result = result.scalar_one_or_none()

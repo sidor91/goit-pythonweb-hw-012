@@ -1,6 +1,8 @@
 from sqlalchemy.exc import IntegrityError
 
+
 def handle_integrity_error(e: IntegrityError):
+    """Map SQLAlchemy integrity errors to user-friendly messages."""
     error = str(e.orig)
 
     if "contacts_email_key" in error:

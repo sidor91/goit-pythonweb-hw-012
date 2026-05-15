@@ -41,6 +41,17 @@ async def register_user(
     request: Request,
     db: AsyncSession = Depends(get_db),
 ):
+    """Register a new user and send an email confirmation link.
+
+    Args:
+        user_data: Payload with username, email, and password.
+        background_tasks: FastAPI background task runner.
+        request: Incoming request used to build the confirmation URL.
+        db: Database session dependency.
+
+    Returns:
+        The created user record.
+    """
     user_service = UserService(db)
 
     email_user = await user_service.get_user_by_email(user_data.email)
@@ -71,6 +82,7 @@ async def register_user(
 async def login_user(
     form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)
 ):
+    """Authenticate a user and return a JWT access token."""
     user_service = UserService(db)
     user = await user_service.get_user_by_username(form_data.username)
     if not user or not Hash().verify_password(form_data.password, user.hashed_password):
@@ -108,6 +120,7 @@ async def login_user(
 
 @router.get("/confirmed_email/{token}")
 async def confirmed_email(token: str, db: AsyncSession = Depends(get_db)):
+    """Confirm a user's email address using a verification token."""
     email = await get_email_from_token(token)
     user_service = UserService(db)
     user = await user_service.get_user_by_email(email)
@@ -128,6 +141,7 @@ async def request_email(
     request: Request,
     db: AsyncSession = Depends(get_db),
 ):
+    """Send a new confirmation email to a registered but unconfirmed user."""
     user_service = UserService(db)
     user = await user_service.get_user_by_email(body.email)
 
