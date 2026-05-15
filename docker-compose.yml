@@ -1,0 +1,62 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: contacts_db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-contacts_db}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app_network
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: contacts_app
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-contacts_db}
+      PORT: 8000
+      ORIGINS: ${ORIGINS:-["http://localhost:3000"]}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      JWT_EXPIRATION_SECONDS: ${JWT_EXPIRATION_SECONDS:-3600}
+      MAIL_USERNAME: ${MAIL_USERNAME}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+      MAIL_FROM: ${MAIL_FROM}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_SERVER: ${MAIL_SERVER}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME}
+      MAIL_STARTTLS: ${MAIL_STARTTLS:-false}
+      MAIL_SSL_TLS: ${MAIL_SSL_TLS:-true}
+      USE_CREDENTIALS: ${USE_CREDENTIALS:-true}
+      VALIDATE_CERTS: ${VALIDATE_CERTS:-true}
+      CLOUDINARY_NAME: ${CLOUDINARY_NAME}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - .:/app
+    networks:
+      - app_network
+    command: sh -c "poetry run alembic upgrade head && poetry run uvicorn main:app --host 0.0.0.0 --port 8000"
+
+volumes:
+  postgres_data:
+
+networks:
+  app_network:
+    driver: bridge
