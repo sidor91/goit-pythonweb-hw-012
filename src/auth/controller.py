@@ -85,7 +85,9 @@ async def login_user(
             detail="Електронна адреса не підтверджена",
         )
 
-    access_token = await create_access_token(data={"sub": user.username})
+    access_token = await create_access_token(
+        data={"sub": user.username, "role": user.role}
+    )
     # Cache the authenticated user's minimal info to reduce DB lookups
     try:
         await cache_service.set_user_by_username(
@@ -95,6 +97,7 @@ async def login_user(
                 "username": user.username,
                 "email": user.email,
                 "avatar": user.avatar,
+                "role": user.role,
             },
         )
     except Exception:

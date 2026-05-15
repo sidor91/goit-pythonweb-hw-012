@@ -24,6 +24,7 @@ class User(Base):
         "created_at", DateTime, default=func.now()
     )
     avatar: Mapped[str] = mapped_column(String(255), nullable=True)
+    role: Mapped[str] = mapped_column(String(20), default="user")
     contacts: Mapped[list["Contact"]] = relationship(
         "Contact",
         back_populates="user",

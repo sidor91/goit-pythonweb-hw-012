@@ -85,12 +85,25 @@ async def get_current_user(
                 "username": user.username,
                 "email": user.email,
                 "avatar": user.avatar,
+                "role": user.role,
             },
         )
     except Exception:
         # Swallow cache errors to avoid affecting auth
         pass
     return user
+
+
+def require_role(required_role: str):
+    async def role_dependency(user: UserSchema = Depends(get_current_user)):
+        if user.role != required_role:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Insufficient privileges",
+            )
+        return user
+
+    return role_dependency
 
 
 def create_email_token(data: dict[str, Any]):

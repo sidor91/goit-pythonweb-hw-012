@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, Request, UploadFile, File
 from src.database.users.schemas import User as UserSchema
-from src.database.users.model import User as UserModel
-from src.auth.service import get_current_user
+from src.auth.service import get_current_user, require_role
 from src.utils.limiter import limiter
 from src.database.config import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -21,7 +20,7 @@ async def me(request: Request, user: UserSchema = Depends(get_current_user)):
 @router.patch("/avatar", response_model=UserSchema)
 async def update_avatar_user(
     file: UploadFile = File(),
-    user: UserModel = Depends(get_current_user),
+    user: UserSchema = Depends(require_role("admin")),
     db: AsyncSession = Depends(get_db),
 ):
     avatar_url = UploadFileService(
