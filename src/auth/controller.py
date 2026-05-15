@@ -6,6 +6,7 @@ from src.auth.service import create_access_token, Hash, get_email_from_token
 from src.users.service import UserService
 from src.database.config import get_db
 from src.services.email.service import send_email
+from src.services.cache.service import cache_service
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -62,6 +63,20 @@ async def login_user(
         )
 
     access_token = await create_access_token(data={"sub": user.username})
+    # Cache the authenticated user's minimal info to reduce DB lookups
+    try:
+        await cache_service.set_user_by_username(
+            user.username,
+            {
+                "id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "avatar": user.avatar,
+            },
+        )
+    except Exception:
+        # Cache failures should not block login
+        pass
     return {"access_token": access_token, "token_type": "bearer"}
 
 

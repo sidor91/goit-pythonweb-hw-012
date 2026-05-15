@@ -28,6 +28,8 @@ class Settings(BaseSettings):
     CLOUDINARY_NAME: str
     CLOUDINARY_API_KEY: int
     CLOUDINARY_API_SECRET: str
+    REDIS_URL: str
+    USER_CACHE_TTL: int
 
     model_config = SettingsConfigDict(
         extra="ignore", env_file=".env", env_file_encoding="utf-8", case_sensitive=True

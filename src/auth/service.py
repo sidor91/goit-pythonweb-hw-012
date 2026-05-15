@@ -10,6 +10,8 @@ from jose import JWTError, jwt
 from src.database.config import get_db
 from src.utils.env_variables import settings
 from src.users.service import UserService
+from src.services.cache.service import cache_service
+from src.database.users.schemas import User as UserSchema
 
 
 class Hash:
@@ -26,13 +28,17 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
 
 # define a function to generate a new access token
-async def create_access_token(data: dict[str, Any], expires_delta: Optional[int] = None):
+async def create_access_token(
+    data: dict[str, Any], expires_delta: Optional[int] = None
+):
     to_encode = data.copy()
     if expires_delta:
         expire = datetime.now(UTC) + timedelta(seconds=expires_delta)
     else:
-        expire = datetime.now(UTC) + timedelta(seconds=int(settings.JWT_EXPIRATION_SECONDS))
-    
+        expire = datetime.now(UTC) + timedelta(
+            seconds=int(settings.JWT_EXPIRATION_SECONDS)
+        )
+
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(
         to_encode, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM
@@ -59,10 +65,31 @@ async def get_current_user(
             raise credentials_exception
     except JWTError:
         raise credentials_exception
+    # First, try to obtain user data from cache to avoid DB hit
+    cached = await cache_service.get_user_by_username(username)
+    if cached:
+        # Return a Pydantic schema constructed from cached data
+        return UserSchema(**cached)
+
     user_service = UserService(db)
     user = await user_service.get_user_by_username(username)
     if user is None:
         raise credentials_exception
+
+    # Cache minimal user information for subsequent requests
+    try:
+        await cache_service.set_user_by_username(
+            username,
+            {
+                "id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "avatar": user.avatar,
+            },
+        )
+    except Exception:
+        # Swallow cache errors to avoid affecting auth
+        pass
     return user
 
 

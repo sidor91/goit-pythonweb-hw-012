@@ -18,6 +18,14 @@ services:
     networks:
       - app_network
 
+  redis:
+    image: redis:7-alpine
+    container_name: contacts_redis
+    ports:
+      - "6379:6379"
+    networks:
+      - app_network
+
   app:
     build:
       context: .
@@ -43,11 +51,14 @@ services:
       CLOUDINARY_NAME: ${CLOUDINARY_NAME}
       CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
       CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
     ports:
       - "8000:8000"
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_started
     volumes:
       - .:/app
     networks:
@@ -60,3 +71,4 @@ volumes:
 networks:
   app_network:
     driver: bridge
+  

@@ -3,6 +3,8 @@ from libgravatar import Gravatar  # type: ignore
 
 from src.users.repository import UserRepository
 from src.database.users.schemas import UserCreate
+from src.services.cache.service import cache_service
+
 
 class UserService:
     def __init__(self, db: AsyncSession):
@@ -29,7 +31,15 @@ class UserService:
 
     async def confirmed_email(self, email: str):
         return await self.repository.confirmed_email(email)
-    
-    async def update_avatar_url(self, email: str, url: str):
-        return await self.repository.update_avatar_url(email, url)
 
+    async def update_avatar_url(self, email: str, url: str):
+        user = await self.repository.update_avatar_url(email, url)
+        # Invalidate cached user data after avatar update
+        try:
+            if user and user.username:
+                await cache_service.delete_user_by_username(user.username)
+                await cache_service.delete_user(user.id)
+        except Exception:
+            # Do not block the operation on cache failures
+            pass
+        return user
