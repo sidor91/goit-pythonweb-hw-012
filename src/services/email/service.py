@@ -4,6 +4,7 @@ from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
 from fastapi_mail.errors import ConnectionErrors
 
 from src.auth.service import create_email_token
+from src.auth.service import create_password_reset_token
 from src.utils.env_variables import settings
 
 conf = ConnectionConfig(
@@ -37,5 +38,28 @@ async def send_email(email: str, username: str, host: str):
 
         fm = FastMail(conf)
         await fm.send_message(message, template_name="verify_email.html")
+    except ConnectionErrors as err:
+        print(err)
+
+
+async def send_password_reset_email(
+    email: str, username: str, host: str, ttl: int = 3600
+):
+    """Send password reset email with a short-lived token."""
+    try:
+        token = create_password_reset_token({"sub": email}, expires_seconds=ttl)
+        message = MessageSchema(
+            subject="Password reset",
+            recipients=[email],  # type: ignore
+            template_body={
+                "host": host,
+                "username": username,
+                "token": token,
+            },
+            subtype=MessageType.html,
+        )
+
+        fm = FastMail(conf)
+        await fm.send_message(message, template_name="reset_password.html")
     except ConnectionErrors as err:
         print(err)

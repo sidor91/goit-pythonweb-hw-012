@@ -15,7 +15,9 @@ class CacheService:
     Uses `redis.asyncio` to store serialized user data under `user:{id}` keys.
     """
 
-    def __init__(self, url: str = settings.REDIS_URL, ttl: int = settings.USER_CACHE_TTL):
+    def __init__(
+        self, url: str = settings.REDIS_URL, ttl: int = settings.USER_CACHE_TTL
+    ):
         self._url = url
         self._ttl = ttl
         self._client: Optional[aioredis.Redis] = None
@@ -23,7 +25,9 @@ class CacheService:
     async def connect(self) -> None:
         """Initialize Redis client connection."""
         if self._client is None:
-            self._client = aioredis.from_url(self._url, encoding="utf-8", decode_responses=True)
+            self._client = aioredis.from_url(
+                self._url, encoding="utf-8", decode_responses=True
+            )
 
     async def close(self) -> None:
         """Close Redis connection."""
@@ -92,6 +96,35 @@ class CacheService:
             await self._client.delete(key)
         except Exception as e:
             logger.exception("Failed to delete username-based user cache: %s", e)
+
+    # Generic key helpers
+    async def set_key(self, key: str, value: str, ex: int | None = None) -> None:
+        """Set arbitrary key with optional TTL."""
+        await self.connect()
+        try:
+            if ex:
+                await self._client.set(key, value, ex=ex)
+            else:
+                await self._client.set(key, value)
+        except Exception as e:
+            logger.exception("Failed to set key %s: %s", key, e)
+
+    async def get_key(self, key: str) -> Optional[str]:
+        """Get arbitrary key value or None."""
+        await self.connect()
+        try:
+            return await self._client.get(key)
+        except Exception as e:
+            logger.exception("Failed to get key %s: %s", key, e)
+            return None
+
+    async def delete_key(self, key: str) -> None:
+        """Delete arbitrary key."""
+        await self.connect()
+        try:
+            await self._client.delete(key)
+        except Exception as e:
+            logger.exception("Failed to delete key %s: %s", key, e)
 
 
 # Module-level default cache instance for convenience.

@@ -113,3 +113,29 @@ async def get_email_from_token(token: str):
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Неправильний токен для перевірки електронної пошти",
         )
+
+
+def create_password_reset_token(data: dict[str, Any], expires_seconds: int = 3600):
+    """Create a short-lived JWT token for password reset."""
+    to_encode = data.copy()
+    expire = datetime.now(UTC) + timedelta(seconds=expires_seconds)
+    to_encode.update({"iat": datetime.now(UTC), "exp": expire})
+    token = jwt.encode(to_encode, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
+    return token
+
+
+async def get_email_from_password_token(token: str):
+    """Decode password reset token and return embedded email (sub)."""
+    try:
+        payload = jwt.decode(
+            token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM]
+        )
+        email = payload.get("sub")
+        if not email:
+            raise JWTError()
+        return email
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Invalid or expired password reset token",
+        )

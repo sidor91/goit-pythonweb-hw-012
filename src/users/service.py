@@ -43,3 +43,14 @@ class UserService:
             # Do not block the operation on cache failures
             pass
         return user
+
+    async def update_password(self, email: str, hashed_password: str):
+        user = await self.repository.update_password(email, hashed_password)
+        # Invalidate cache so subsequent requests fetch fresh data
+        try:
+            if user and user.username:
+                await cache_service.delete_user_by_username(user.username)
+                await cache_service.delete_user(user.id)
+        except Exception:
+            pass
+        return user

@@ -1,5 +1,6 @@
 from pydantic import BaseModel, ConfigDict, EmailStr
 
+
 class User(BaseModel):
     id: int
     username: str
@@ -22,3 +23,7 @@ class Token(BaseModel):
 
 class RequestEmail(BaseModel):
     email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    new_password: str
