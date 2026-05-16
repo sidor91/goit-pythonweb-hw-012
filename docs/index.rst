@@ -1,5 +1,5 @@
 Welcome to GoIt PythonWeb App documentation!
-===========================================
+===============================================
 
 .. toctree::
    :maxdepth: 2
@@ -9,7 +9,7 @@ Welcome to GoIt PythonWeb App documentation!
 
 
 Indices and tables
-==================
+===================
 
 * :ref:`genindex`
 * :ref:`modindex`
